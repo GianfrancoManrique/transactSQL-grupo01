@@ -18,3 +18,5 @@ fecNacimiento datetime null
 alter table desarrollo.tbPersona add estadoCivil int
 --Modificación de tablas.Modificación de columnas
 alter table desarrollo.tbPersona alter column nombres varchar(150)
+
+--select getdate()
