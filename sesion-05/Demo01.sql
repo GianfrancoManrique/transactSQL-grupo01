@@ -96,3 +96,59 @@ from tbCuenta cta inner join tbCliente cte on  cta.idCliente=cte.id
 group by cte.idUbigeo) ubigeoResumen on c.idUbigeo=ubigeoResumen.idUbigeo
 group by  u.departamento , u.provincia , u.distrito,ubigeoResumen.MaxDiasMora
 order by ubigeoResumen.MaxDiasMora desc
+--05.4 Mostrar por producto la mínima y máxima deuda total en soles.
+--Información de productos
+select nombre
+from tbProducto pdto
+--Mínima deuda total en soles por producto
+---Detalle
+--Registré  nuevo tipo de cambio del día.
+insert into tbTipoCambio
+select getdate(),3.270,0.305,getdate(),NULL,'GMV'
+--Obtener tipo de cambio del día.
+select conversionDOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112)
+--Aplicar la conversión para obtener deuda total en soles
+select idProducto,
+case when cta.moneda='SOL' then cta.deudaTotal else 
+(select conversionDOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaTotal
+end as deudaTotalSOL
+from tbCuenta cta
+---Agrupado
+select reporteDeudaTotal.idProducto,
+min(reporteDeudaTotal.deudaTotalSOL) as minDeudaTotalSOL,
+max(reporteDeudaTotal.deudaTotalSOL) as maxDeudaTotalSOL
+from
+(
+	select idProducto,
+	case when cta.moneda='SOL' then cta.deudaTotal else 
+	(select conversionDOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaTotal
+	end as deudaTotalSOL
+	from tbCuenta cta
+	where  idProducto is not null
+) reporteDeudaTotal
+group by reporteDeudaTotal.idProducto
+--Juntar resultados
+select 
+reporteDeudaTotal.idProducto,
+pdtoDet.nombre,
+min(reporteDeudaTotal.deudaTotalSOL) as minDeudaTotalSOL,
+max(reporteDeudaTotal.deudaTotalSOL) as maxDeudaTotalSOL
+from
+(
+	select idProducto,
+	case when cta.moneda='SOL' then cta.deudaTotal else 
+	(select conversionDOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaTotal
+	end as deudaTotalSOL
+	from tbCuenta cta
+	where  idProducto is not null
+) reporteDeudaTotal inner join tbProducto pdtoDet on reporteDeudaTotal.idProducto=pdtoDet.id
+group by reporteDeudaTotal.idProducto,pdtoDet.nombre
+
+
+
+--Agrupado
+select idProducto,min(cta.deudaTotal) as minDeudaTotal from tbCuenta cta --inner join tbProducto pdto on cta.idProducto=pdto.id
+group by idProducto
+
+--Máxima deuda total en soles por producto
+
