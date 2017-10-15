@@ -152,3 +152,84 @@ group by idProducto
 
 --Máxima deuda total en soles por producto
 
+--05.5 Mostrar los clientes con días mora mayor al promedio
+--05.1 Determinar los días mora promedio
+--05.2 Filtrar los clientes con días mora>05.01
+
+select cte.id,cta.diasMoraNuevo,
+(select AVG(diasMoraNuevo) as PromDiasMora from tbCuenta) as DiasMoraPromedio,
+case when cta.diasMoraNuevo>(select AVG(diasMoraNuevo) as PromDiasMora from tbCuenta) then 'SOY MAYOR' ELSE 'SOY MENOR' END as Resultado
+from tbCliente cte inner join
+tbCuenta cta on cta.idCliente=cte.id
+--where cta.diasMoraNuevo>(select AVG(diasMoraNuevo) as PromDiasMora from tbCuenta)--05.01
+
+select cte.id,cta.diasMoraNuevo,
+(select AVG(diasMoraNuevo) as PromDiasMora from tbCuenta) as DiasMoraPromedio--Subconsulta en SELECT
+from tbCliente cte inner join
+tbCuenta cta on cta.idCliente=cte.id
+where cta.diasMoraNuevo>(select AVG(diasMoraNuevo) as PromDiasMora from tbCuenta)--Subconsulta en WHERE
+
+--05.6 Mostrar los clientes cuya deuda vencida en soles sea menor a la deuda vencida promedio de Huacho.
+--5.6.1 Calcular deuda vencida en soles promedio de Huacho
+--Detalle
+select cta.id,
+       cta.moneda,
+	   cta.deudaVencida,
+	  case when cta.moneda='SOL' then cta.deudaVencida else 
+	  (select conversionSOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaVencida
+	  end as deudaVencidaSOL
+from tbCuenta cta 
+inner join tbCliente cte on cta.idCliente=cte.id
+inner join tbUbigeo  ubi on cte.idUbigeo=ubi.id
+where  UPPER(ubi.distrito)='HUACHO'
+--Resumen
+
+
+		select 
+		cta.id,
+		cta.moneda,
+		case when cta.moneda='SOL' then cta.deudaVencida else (select conversionSOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaVencida end as deudaVencidaSOL,
+		(
+		select AVG(deudaVencidaSOL) as deudaVencidaSOLPROM
+			from
+			(
+				--Determinar las deudas vencidas en soles de HUACHO
+				select ubi.id,
+					  case when cta.moneda='SOL' then cta.deudaVencida else 
+					  (select conversionSOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaVencida
+					  end as deudaVencidaSOL
+				from tbCuenta cta 
+				inner join tbCliente cte on cta.idCliente=cte.id
+				inner join tbUbigeo  ubi on cte.idUbigeo=ubi.id
+				where  UPPER(ubi.distrito)='HUACHO'
+			) reporteDeudaVencidaPromHuacho
+			group by reporteDeudaVencidaPromHuacho.id
+			) as PromHuacho
+		from tbCuenta cta
+		where 
+		case when cta.moneda='SOL' then cta.deudaVencida else (select conversionSOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaVencida end
+		<
+		(
+			--Determinar la deuda vencida promedio de Huacho
+			select AVG(deudaVencidaSOL) as deudaVencidaSOLPROM
+			from
+			(
+				--Determinar las deudas vencidas en soles de HUACHO
+				select ubi.id,
+					  case when cta.moneda='SOL' then cta.deudaVencida else 
+					  (select conversionSOL from tbTipoCambio where CONVERT(VARCHAR(8),fecha,112)=CONVERT(VARCHAR(8),GETDATE(),112))*cta.deudaVencida
+					  end as deudaVencidaSOL
+				from tbCuenta cta 
+				inner join tbCliente cte on cta.idCliente=cte.id
+				inner join tbUbigeo  ubi on cte.idUbigeo=ubi.id
+				where  UPPER(ubi.distrito)='HUACHO'
+			) reporteDeudaVencidaPromHuacho
+			group by reporteDeudaVencidaPromHuacho.id
+		)
+--
+
+
+
+
+select * from tbUbigeo
+--5.6.2 Filtrar clientes con deuda vencida en soles>5.6.1 
